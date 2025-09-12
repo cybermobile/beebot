@@ -76,14 +76,33 @@ export class TasksService {
             ? file.base64.split('base64,')[1]
             : file.base64;
 
+          // Validate base64 format
+          if (
+            base64Data.length % 4 !== 0 ||
+            !/^[A-Za-z0-9+/=]+$/.test(base64Data)
+          ) {
+            throw new BadRequestException(
+              `Invalid base64 data for file ${file.name}`,
+            );
+          }
+
+          const buffer = Buffer.from(base64Data, 'base64');
+
+          const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+          if (buffer.length > MAX_FILE_SIZE) {
+            throw new BadRequestException(
+              `File ${file.name} exceeds the maximum allowed size of 10MB`,
+            );
+          }
+
           filesDescription += `\nFile ${file.name} written to desktop.`;
 
           return prisma.file.create({
             data: {
               name: file.name,
               type: file.type || 'application/octet-stream',
-              size: file.size,
-              data: base64Data,
+              size: buffer.length,
+              data: buffer as any,
               taskId: task.id,
             },
           });
