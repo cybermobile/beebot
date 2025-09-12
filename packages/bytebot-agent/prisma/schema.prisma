@@ -106,7 +106,7 @@ model File {
   name          String
   type          String      // MIME type
   size          Int         // Size in bytes
-  data          String      // Base64 encoded file data
+  data          Bytes       // Raw file data
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   
