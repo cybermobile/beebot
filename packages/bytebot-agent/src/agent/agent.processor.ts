@@ -325,7 +325,7 @@ export class AgentProcessor {
             }),
             model: task.model,
             priority,
-          });
+          }, task.userId!);
 
           generatedToolResults.push({
             type: MessageContentType.ToolResult,

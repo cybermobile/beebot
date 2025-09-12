@@ -26,6 +26,16 @@ app
 
     const vncProxy = createProxyServer({ changeOrigin: true, ws: true });
 
+    // Extra logging for diagnosing VNC proxy issues
+    vncProxy.on("error", (err, req, res) => {
+      console.error("VNC proxy error:", err?.message);
+      if (!res || (res as any).headersSent) return;
+      try {
+        (res as any).writeHead?.(502);
+        (res as any).end?.("Bad gateway: VNC proxy error");
+      } catch {}
+    });
+
     const expressApp = express();
     const server = createServer(expressApp);
 
@@ -47,6 +57,8 @@ app
         (req.url?.replace(/^\/api\/proxy\/websockify/, "") || "");
       vncProxy.web(req, res, {
         target: `${targetUrl.protocol}//${targetUrl.host}`,
+        changeOrigin: true,
+        ws: true,
       });
     });
 
@@ -72,6 +84,8 @@ app
         console.log("Proxying websockify upgrade request: ", request.url);
         return vncProxy.ws(request, socket as any, head, {
           target: `${targetUrl.protocol}//${targetUrl.host}`,
+          changeOrigin: true,
+          ws: true,
         });
       }
 

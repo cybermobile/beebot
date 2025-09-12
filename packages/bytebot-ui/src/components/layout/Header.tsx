@@ -11,6 +11,7 @@ import {
   ComputerIcon,
 } from "@hugeicons/core-free-icons";
 import { usePathname } from "next/navigation";
+import { UserButton, SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 
 export function Header() {
   const { resolvedTheme } = useTheme();
@@ -88,7 +89,16 @@ export function Header() {
           </Link>
         </div>
       </div>
-      <div className="flex items-center gap-3"></div>
+      <div className="flex items-center gap-3">
+        <SignedIn>
+          <UserButton afterSignOutUrl="/" />
+        </SignedIn>
+        <SignedOut>
+          <SignInButton mode="modal">
+            <button className="rounded-md border px-3 py-1 text-sm">Sign in</button>
+          </SignInButton>
+        </SignedOut>
+      </div>
     </header>
   );
 }

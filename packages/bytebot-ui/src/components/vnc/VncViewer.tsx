@@ -32,7 +32,8 @@ export function VncViewer({ viewOnly = true }: VncViewerProps) {
           rfbOptions={{
             secure: false,
             shared: true,
-            wsProtocols: ["binary"],
+            // Let the client/server negotiate the subprotocol; some proxies
+            // will drop Sec-WebSocket-Protocol headers, causing a 1006 close.
           }}
           // autoConnect={true}
           key={viewOnly ? "view-only" : "interactive"}

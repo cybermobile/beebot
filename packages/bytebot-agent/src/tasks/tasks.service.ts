@@ -37,7 +37,7 @@ export class TasksService {
     this.logger.log('TasksService initialized');
   }
 
-  async create(createTaskDto: CreateTaskDto): Promise<Task> {
+  async create(createTaskDto: CreateTaskDto, userId: string): Promise<Task> {
     this.logger.log(
       `Creating new task with description: ${createTaskDto.description}`,
     );
@@ -53,6 +53,7 @@ export class TasksService {
           status: TaskStatus.PENDING,
           createdBy: createTaskDto.createdBy || Role.USER,
           model: createTaskDto.model,
+          userId,
           ...(createTaskDto.scheduledFor
             ? { scheduledFor: createTaskDto.scheduledFor }
             : {}),
@@ -159,6 +160,7 @@ export class TasksService {
     page = 1,
     limit = 10,
     statuses?: string[],
+    userId?: string,
   ): Promise<{ tasks: Task[]; total: number; totalPages: number }> {
     this.logger.log(
       `Retrieving tasks - page: ${page}, limit: ${limit}, statuses: ${statuses?.join(',')}`,
@@ -166,10 +168,12 @@ export class TasksService {
 
     const skip = (page - 1) * limit;
 
-    const whereClause: Prisma.TaskWhereInput =
-      statuses && statuses.length > 0
+    const whereClause: Prisma.TaskWhereInput = {
+      ...(statuses && statuses.length > 0
         ? { status: { in: statuses as TaskStatus[] } }
-        : {};
+        : {}),
+      ...(userId ? { userId } : {}),
+    };
 
     const [tasks, total] = await Promise.all([
       this.prisma.task.findMany({
@@ -214,6 +218,19 @@ export class TasksService {
     }
   }
 
+  async findByIdForUser(id: string, userId: string): Promise<Task> {
+    this.logger.log(`Retrieving task by ID: ${id} for user: ${userId}`);
+    const task = await this.prisma.task.findFirst({
+      where: { id, userId },
+      include: { files: true },
+    });
+    if (!task) {
+      this.logger.warn(`Task with ID: ${id} not found for user`);
+      throw new NotFoundException(`Task with ID ${id} not found`);
+    }
+    return task;
+  }
+
   async update(id: string, updateTaskDto: UpdateTaskDto): Promise<Task> {
     this.logger.log(`Updating task with ID: ${id}`);
     this.logger.debug(`Update data: ${JSON.stringify(updateTaskDto)}`);
@@ -233,7 +250,23 @@ export class TasksService {
     if (updateTaskDto.status === TaskStatus.COMPLETED) {
       this.eventEmitter.emit('task.completed', { taskId: id });
     } else if (updateTaskDto.status === TaskStatus.NEEDS_HELP) {
-      updatedTask = await this.takeOver(id);
+      // Ensure task moves to user control and start input tracking
+      try {
+        const existing = await this.findById(id);
+        if (existing.userId) {
+          updatedTask = await this.takeOver(id, existing.userId);
+        } else {
+          // Fallback: set control to USER without ownership change
+          updatedTask = await this.prisma.task.update({
+            where: { id },
+            data: { control: Role.USER },
+          });
+          this.eventEmitter.emit('task.takeover', { taskId: id });
+          this.tasksGateway.emitTaskUpdate(id, updatedTask);
+        }
+      } catch (e) {
+        this.logger.error('Failed to take over task in update', e as any);
+      }
     } else if (updateTaskDto.status === TaskStatus.FAILED) {
       this.eventEmitter.emit('task.failed', { taskId: id });
     }
@@ -246,8 +279,11 @@ export class TasksService {
     return updatedTask;
   }
 
-  async delete(id: string): Promise<Task> {
+  async delete(id: string, userId: string): Promise<Task> {
     this.logger.log(`Deleting task with ID: ${id}`);
+
+    // Ensure task belongs to user
+    await this.findByIdForUser(id, userId);
 
     const deletedTask = await this.prisma.task.delete({
       where: { id },
@@ -260,8 +296,12 @@ export class TasksService {
     return deletedTask;
   }
 
-  async addTaskMessage(taskId: string, addTaskMessageDto: AddTaskMessageDto) {
-    const task = await this.findById(taskId);
+  async addTaskMessage(
+    taskId: string,
+    addTaskMessageDto: AddTaskMessageDto,
+    userId: string,
+  ) {
+    const task = await this.findByIdForUser(taskId, userId);
     if (!task) {
       this.logger.warn(`Task with ID: ${taskId} not found for guiding`);
       throw new NotFoundException(`Task with ID ${taskId} not found`);
@@ -279,10 +319,10 @@ export class TasksService {
     return task;
   }
 
-  async resume(taskId: string): Promise<Task> {
+  async resume(taskId: string, userId: string): Promise<Task> {
     this.logger.log(`Resuming task ID: ${taskId}`);
 
-    const task = await this.findById(taskId);
+    const task = await this.findByIdForUser(taskId, userId);
     if (!task) {
       throw new NotFoundException(`Task with ID ${taskId} not found`);
     }
@@ -317,10 +357,10 @@ export class TasksService {
     return updatedTask;
   }
 
-  async takeOver(taskId: string): Promise<Task> {
+  async takeOver(taskId: string, userId: string): Promise<Task> {
     this.logger.log(`Taking over control for task ID: ${taskId}`);
 
-    const task = await this.findById(taskId);
+    const task = await this.findByIdForUser(taskId, userId);
     if (!task) {
       throw new NotFoundException(`Task with ID ${taskId} not found`);
     }
@@ -356,10 +396,10 @@ export class TasksService {
     return updatedTask;
   }
 
-  async cancel(taskId: string): Promise<Task> {
+  async cancel(taskId: string, userId: string): Promise<Task> {
     this.logger.log(`Cancelling task ID: ${taskId}`);
 
-    const task = await this.findById(taskId);
+    const task = await this.findByIdForUser(taskId, userId);
     if (!task) {
       throw new NotFoundException(`Task with ID ${taskId} not found`);
     }

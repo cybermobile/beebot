@@ -1,0 +1,66 @@
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  darkMode: ["class"],
+  content: [
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        "bytebot-white": "var(--color-bytebot-white)",
+        "bytebot-transparent": "var(--color-bytebot-transparent)",
+        "bytebot-black": "var(--color-bytebot-black)",
+        "bytebot-bronze-light-1": "var(--color-bytebot-bronze-light-1)",
+        "bytebot-bronze-light-2": "var(--color-bytebot-bronze-light-2)",
+        "bytebot-bronze-light-3": "var(--color-bytebot-bronze-light-3)",
+        "bytebot-bronze-light-4": "var(--color-bytebot-bronze-light-4)",
+        "bytebot-bronze-light-5": "var(--color-bytebot-bronze-light-5)",
+        "bytebot-bronze-light-6": "var(--color-bytebot-bronze-light-6)",
+        "bytebot-bronze-light-7": "var(--color-bytebot-bronze-light-7)",
+        "bytebot-bronze-light-8": "var(--color-bytebot-bronze-light-8)",
+        "bytebot-bronze-light-9": "var(--color-bytebot-bronze-light-9)",
+        "bytebot-bronze-light-10": "var(--color-bytebot-bronze-light-10)",
+        "bytebot-bronze-light-11": "var(--color-bytebot-bronze-light-11)",
+        "bytebot-bronze-light-12": "var(--color-bytebot-bronze-light-12)",
+        "bytebot-bronze-light-a1": "var(--color-bytebot-bronze-light-a1)",
+        "bytebot-bronze-light-a2": "var(--color-bytebot-bronze-light-a2)",
+        "bytebot-bronze-light-a3": "var(--color-bytebot-bronze-light-a3)",
+        "bytebot-bronze-dark-1": "var(--color-bytebot-bronze-dark-1)",
+        "bytebot-bronze-dark-2": "var(--color-bytebot-bronze-dark-2)",
+        "bytebot-bronze-dark-3": "var(--color-bytebot-bronze-dark-3)",
+        "bytebot-bronze-dark-4": "var(--color-bytebot-bronze-dark-4)",
+        "bytebot-bronze-dark-5": "var(--color-bytebot-bronze-dark-5)",
+        "bytebot-bronze-dark-6": "var(--color-bytebot-bronze-dark-6)",
+        "bytebot-bronze-dark-7": "var(--color-bytebot-bronze-dark-7)",
+        "bytebot-bronze-dark-8": "var(--color-bytebot-bronze-dark-8)",
+        "bytebot-bronze-dark-9": "var(--color-bytebot-bronze-dark-9)",
+        "bytebot-bronze-dark-10": "var(--color-bytebot-bronze-dark-10)",
+        "bytebot-bronze-dark-11": "var(--color-bytebot-bronze-dark-11)",
+        "bytebot-bronze-dark-12": "var(--color-bytebot-bronze-dark-12)",
+        background: "var(--color-background)",
+        foreground: "var(--color-foreground)",
+      },
+      fontFamily: {
+        sans: ["var(--font-sans)"],
+        mono: ["var(--font-mono)"],
+      },
+      keyframes: {
+        "accordion-down": {
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+      },
+      animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
+      },
+    },
+  },
+  plugins: [],
+};

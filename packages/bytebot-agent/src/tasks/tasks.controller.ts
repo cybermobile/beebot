@@ -9,6 +9,8 @@ import {
   HttpCode,
   Query,
   HttpException,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
@@ -19,6 +21,8 @@ import { ANTHROPIC_MODELS } from '../anthropic/anthropic.constants';
 import { OPENAI_MODELS } from '../openai/openai.constants';
 import { GOOGLE_MODELS } from '../google/google.constants';
 import { BytebotAgentModel } from 'src/agent/agent.types';
+import { ClerkAuthGuard } from '../auth/clerk-auth.guard';
+import { RequestWithUser } from '../auth/request-user.interface';
 
 const geminiApiKey = process.env.GEMINI_API_KEY;
 const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
@@ -32,6 +36,7 @@ const models = [
   ...(geminiApiKey ? GOOGLE_MODELS : []),
 ];
 
+@UseGuards(ClerkAuthGuard)
 @Controller('tasks')
 export class TasksController {
   constructor(
@@ -41,12 +46,16 @@ export class TasksController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() createTaskDto: CreateTaskDto): Promise<Task> {
-    return this.tasksService.create(createTaskDto);
+  async create(
+    @Body() createTaskDto: CreateTaskDto,
+    @Req() req: RequestWithUser,
+  ): Promise<Task> {
+    return this.tasksService.create(createTaskDto, req.user!.id);
   }
 
   @Get()
   async findAll(
+    @Req() req: RequestWithUser,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('status') status?: string,
@@ -63,7 +72,12 @@ export class TasksController {
       statusFilter = [status];
     }
 
-    return this.tasksService.findAll(pageNum, limitNum, statusFilter);
+    return this.tasksService.findAll(
+      pageNum,
+      limitNum,
+      statusFilter,
+      req.user!.id,
+    );
   }
 
   @Get('models')
@@ -111,16 +125,22 @@ export class TasksController {
   }
 
   @Get(':id')
-  async findById(@Param('id') id: string): Promise<Task> {
-    return this.tasksService.findById(id);
+  async findById(
+    @Param('id') id: string,
+    @Req() req: RequestWithUser,
+  ): Promise<Task> {
+    return this.tasksService.findByIdForUser(id, req.user!.id);
   }
 
   @Get(':id/messages')
   async taskMessages(
     @Param('id') taskId: string,
+    @Req() req: RequestWithUser,
     @Query('limit') limit?: string,
     @Query('page') page?: string,
   ): Promise<Message[]> {
+    // Ensure task belongs to user
+    await this.tasksService.findByIdForUser(taskId, req.user!.id);
     const options = {
       limit: limit ? parseInt(limit, 10) : undefined,
       page: page ? parseInt(page, 10) : undefined,
@@ -135,16 +155,19 @@ export class TasksController {
   async addTaskMessage(
     @Param('id') taskId: string,
     @Body() guideTaskDto: AddTaskMessageDto,
+    @Req() req: RequestWithUser,
   ): Promise<Task> {
-    return this.tasksService.addTaskMessage(taskId, guideTaskDto);
+    return this.tasksService.addTaskMessage(taskId, guideTaskDto, req.user!.id);
   }
 
   @Get(':id/messages/raw')
   async taskRawMessages(
     @Param('id') taskId: string,
+    @Req() req: RequestWithUser,
     @Query('limit') limit?: string,
     @Query('page') page?: string,
   ): Promise<Message[]> {
+    await this.tasksService.findByIdForUser(taskId, req.user!.id);
     const options = {
       limit: limit ? parseInt(limit, 10) : undefined,
       page: page ? parseInt(page, 10) : undefined,
@@ -156,9 +179,11 @@ export class TasksController {
   @Get(':id/messages/processed')
   async taskProcessedMessages(
     @Param('id') taskId: string,
+    @Req() req: RequestWithUser,
     @Query('limit') limit?: string,
     @Query('page') page?: string,
   ) {
+    await this.tasksService.findByIdForUser(taskId, req.user!.id);
     const options = {
       limit: limit ? parseInt(limit, 10) : undefined,
       page: page ? parseInt(page, 10) : undefined,
@@ -169,25 +194,37 @@ export class TasksController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  async delete(@Param('id') id: string): Promise<void> {
-    await this.tasksService.delete(id);
+  async delete(
+    @Param('id') id: string,
+    @Req() req: RequestWithUser,
+  ): Promise<void> {
+    await this.tasksService.delete(id, req.user!.id);
   }
 
   @Post(':id/takeover')
   @HttpCode(HttpStatus.OK)
-  async takeOver(@Param('id') taskId: string): Promise<Task> {
-    return this.tasksService.takeOver(taskId);
+  async takeOver(
+    @Param('id') taskId: string,
+    @Req() req: RequestWithUser,
+  ): Promise<Task> {
+    return this.tasksService.takeOver(taskId, req.user!.id);
   }
 
   @Post(':id/resume')
   @HttpCode(HttpStatus.OK)
-  async resume(@Param('id') taskId: string): Promise<Task> {
-    return this.tasksService.resume(taskId);
+  async resume(
+    @Param('id') taskId: string,
+    @Req() req: RequestWithUser,
+  ): Promise<Task> {
+    return this.tasksService.resume(taskId, req.user!.id);
   }
 
   @Post(':id/cancel')
   @HttpCode(HttpStatus.OK)
-  async cancel(@Param('id') taskId: string): Promise<Task> {
-    return this.tasksService.cancel(taskId);
+  async cancel(
+    @Param('id') taskId: string,
+    @Req() req: RequestWithUser,
+  ): Promise<Task> {
+    return this.tasksService.cancel(taskId, req.user!.id);
   }
 }

@@ -21,8 +21,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { VirtualDesktopStatus } from "@/components/VirtualDesktopStatusHeader";
+import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 
-export default function TaskPage() {
+function TaskPageContent() {
   const params = useParams();
   const router = useRouter();
   const taskId = params.id as string;
@@ -217,4 +218,9 @@ export default function TaskPage() {
       </main>
     </div>
   );
+}
+
+export default function TaskPage() {
+  // Middleware protects this route; render directly.
+  return <TaskPageContent />;
 }

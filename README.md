@@ -94,6 +94,30 @@ docker-compose -f docker/docker-compose.yml up -d
 # Open http://localhost:9992
 ```
 
+### Enabling Multi-User with Clerk (Auth)
+
+Set these environment variables:
+
+- UI (`packages/bytebot-ui`)
+  - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...`
+  - `CLERK_SECRET_KEY=sk_test_...`
+  - `BYTEBOT_AGENT_BASE_URL=http://bytebot-agent:9991` (or http://localhost:9991)
+
+- Agent (`packages/bytebot-agent`)
+  - `CLERK_SECRET_KEY=sk_test_...` (same as above)
+
+Then run migrations in the agent database to add users and link tasks:
+
+```bash
+cd packages/bytebot-agent
+npx prisma migrate dev -n "add_user_and_relation"
+npx prisma generate
+```
+
+Notes:
+- The UI enforces auth via Clerk middleware and forwards a verified Bearer token to the agent.
+- The agent verifies tokens with Clerk for both HTTP and WebSockets and scopes all tasks to the current user.
+
 [Full deployment guide →](https://docs.bytebot.ai/quickstart)
 
 ## How It Works
@@ -236,6 +260,40 @@ Bytebot is built with:
 - **Flexibility**: Install any software, access any systems
 
 ## Advanced Features
+
+Start Dev Infra
+
+Start desktop + Postgres:
+docker compose -f docker/docker-compose.development.yml up -d
+Desktop URL: http://localhost:9990 (VNC proxied by UI later)
+Postgres: postgresql://postgres:postgres@localhost:5432/bytebotdb
+Run Backend (Agent)
+
+Env file: packages/bytebot-agent/.env
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bytebotdb
+CLERK_SECRET_KEY=sk_test_...
+BYTEBOT_DESKTOP_BASE_URL=http://localhost:9990
+Optional: ANTHROPIC_API_KEY=... or OPENAI_API_KEY=... or GEMINI_API_KEY=...
+Install, migrate, run:
+cd packages/bytebot-agent
+npm install
+npx prisma migrate dev -n "add_user_and_relation"
+npm run start:dev
+Agent listens on http://localhost:9991
+Run UI
+
+Env file: packages/bytebot-ui/.env
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
+BYTEBOT_AGENT_BASE_URL=http://localhost:9991
+BYTEBOT_DESKTOP_VNC_URL=http://localhost:9990/websockify
+Install and start:
+cd packages/bytebot-ui
+npm install
+npm run dev
+UI listens on http://localhost:9992
+
+
 
 ### Multiple AI Providers
 

@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 
 /* -------------------------------------------------------------------- */
 /* generic proxy helper                                                 */
@@ -22,6 +23,18 @@ async function proxy(req: NextRequest, path: string[]): Promise<Response> {
         ? undefined
         : await req.text(),
   };
+
+  // Verify Clerk session and forward token + identity
+  const { userId, getToken, sessionClaims } = await auth();
+  if (!userId) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+  const token = await getToken();
+  const email = (sessionClaims as any)?.email || "";
+
+  (init.headers as any)["Authorization"] = token ? `Bearer ${token}` : "";
+  (init.headers as any)["x-user-id"] = userId;
+  (init.headers as any)["x-user-email"] = email;
 
   const res = await fetch(url, init);
   const body = await res.text();

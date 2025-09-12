@@ -35,8 +35,9 @@ export const TaskList: React.FC<TaskListProps> = ({
 
   const handleTaskCreated = useCallback((newTask: Task) => {
     setTasks(prev => {
-      const updated = [newTask, ...prev];
-      return updated.slice(0, limit);
+      // De-duplicate by id then prepend
+      const without = prev.filter(t => t.id !== newTask.id);
+      return [newTask, ...without].slice(0, limit);
     });
   }, [limit]);
 
@@ -56,7 +57,11 @@ export const TaskList: React.FC<TaskListProps> = ({
       setIsLoading(true);
       try {
         const result = await fetchTasks({ limit });
-        setTasks(result.tasks);
+        // Ensure uniqueness in case of overlapping WS events
+        const unique = Array.from(
+          new Map(result.tasks.map((t) => [t.id, t])).values(),
+        );
+        setTasks(unique);
       } catch (error) {
         console.error("Failed to load tasks:", error);
       } finally {

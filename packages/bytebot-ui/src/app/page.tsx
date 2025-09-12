@@ -15,6 +15,7 @@ import {
 import { startTask } from "@/utils/taskUtils";
 import { Model } from "@/types";
 import { TaskList } from "@/components/tasks/TaskList";
+import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 
 interface StockPhotoProps {
   src: string;
@@ -28,7 +29,14 @@ const StockPhoto: React.FC<StockPhotoProps> = ({
   return (
     <div className="h-full w-full overflow-hidden rounded-lg bg-white">
       <div className="relative h-full w-full">
-        <Image src={src} alt={alt} fill className="object-cover" priority />
+        <Image
+          src={src}
+          alt={alt}
+          fill
+          sizes="(min-width: 1024px) 50vw, 100vw"
+          className="object-cover"
+          priority
+        />
       </div>
     </div>
   );
@@ -41,7 +49,7 @@ interface FileWithBase64 {
   size: number;
 }
 
-export default function Home() {
+function AuthedHome() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [models, setModels] = useState<Model[]>([]);
@@ -163,7 +171,7 @@ export default function Home() {
                 />
                 <div className="mt-2">
                   <Select
-                    value={selectedModel?.name}
+                    value={selectedModel?.name ?? ""}
                     onValueChange={(val) =>
                       setSelectedModel(
                         models.find((m) => m.name === val) || null,
@@ -221,7 +229,7 @@ export default function Home() {
                 />
                 <div className="mt-2">
                   <Select
-                    value={selectedModel?.name}
+                    value={selectedModel?.name ?? ""}
                     onValueChange={(val) =>
                       setSelectedModel(
                         models.find((m) => m.name === val) || null,
@@ -253,4 +261,9 @@ export default function Home() {
       </main>
     </div>
   );
+}
+
+export default function Home() {
+  // Middleware protects this route; render directly.
+  return <AuthedHome />;
 }

@@ -11,6 +11,7 @@ import { Task } from "@/types";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Suspense } from "react";
+import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 
 function TasksPageContent() {
   const router = useRouter();
@@ -183,6 +184,7 @@ function TasksPageFallback() {
 }
 
 export default function TasksPage() {
+  // Middleware protects this route; render directly.
   return (
     <Suspense fallback={<TasksPageFallback />}>
       <TasksPageContent />
