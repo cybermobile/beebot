@@ -16,6 +16,7 @@ import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { Message, Task } from '@prisma/client';
 import { AddTaskMessageDto } from './dto/add-task-message.dto';
+import { TaskMessageDto } from './dto/task-message.dto';
 import { MessagesService } from '../messages/messages.service';
 import { ANTHROPIC_MODELS } from '../anthropic/anthropic.constants';
 import { OPENAI_MODELS } from '../openai/openai.constants';
@@ -156,7 +157,7 @@ export class TasksController {
     @Param('id') taskId: string,
     @Body() guideTaskDto: AddTaskMessageDto,
     @Req() req: RequestWithUser,
-  ): Promise<Task> {
+  ): Promise<TaskMessageDto> {
     return this.tasksService.addTaskMessage(taskId, guideTaskDto, req.user!.id);
   }
 
