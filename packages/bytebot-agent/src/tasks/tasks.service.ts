@@ -19,6 +19,8 @@ import {
   File,
 } from '@prisma/client';
 import { AddTaskMessageDto } from './dto/add-task-message.dto';
+import { TaskMessageDto } from './dto/task-message.dto';
+import { MessageContentBlock } from '@bytebot/shared';
 import { TasksGateway } from './tasks.gateway';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -265,7 +267,7 @@ export class TasksService {
           this.tasksGateway.emitTaskUpdate(id, updatedTask);
         }
       } catch (e) {
-        this.logger.error('Failed to take over task in update', e as any);
+        this.logger.error('Failed to take over task in update', e);
       }
     } else if (updateTaskDto.status === TaskStatus.FAILED) {
       this.eventEmitter.emit('task.failed', { taskId: id });
@@ -300,7 +302,7 @@ export class TasksService {
     taskId: string,
     addTaskMessageDto: AddTaskMessageDto,
     userId: string,
-  ) {
+  ): Promise<TaskMessageDto> {
     const task = await this.findByIdForUser(taskId, userId);
     if (!task) {
       this.logger.warn(`Task with ID: ${taskId} not found for guiding`);
@@ -316,7 +318,10 @@ export class TasksService {
     });
 
     this.tasksGateway.emitNewMessage(taskId, message);
-    return task;
+    return {
+      ...message,
+      content: message.content as MessageContentBlock[],
+    };
   }
 
   async resume(taskId: string, userId: string): Promise<Task> {
