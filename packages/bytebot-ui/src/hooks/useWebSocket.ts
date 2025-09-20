@@ -39,9 +39,9 @@ export function useWebSocket({
     // Get Clerk token for backend verification
     const token = await getAuthToken();
 
-    // Connect to the WebSocket server
-    const socket = io({
-      path: "/api/proxy/tasks",
+    // Connect directly to the backend WebSocket server
+    const backendUrl = process.env.NEXT_PUBLIC_BYTEBOT_AGENT_BASE_URL || 'http://localhost:9991';
+    const socket = io(backendUrl, {
       transports: ["websocket"],
       autoConnect: true,
       reconnection: true,

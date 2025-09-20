@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Summary } from '@prisma/client';
 
 @Injectable()
 export class SummariesService {
@@ -10,8 +9,8 @@ export class SummariesService {
     taskId: string;
     content: string;
     parentId?: string;
-  }): Promise<Summary> {
-    return this.prisma.summary.create({
+  }) {
+    return (this.prisma as any).summary.create({
       data: {
         taskId: data.taskId,
         content: data.content,
@@ -20,15 +19,15 @@ export class SummariesService {
     });
   }
 
-  async findLatest(taskId: string): Promise<Summary | null> {
-    return this.prisma.summary.findFirst({
+  async findLatest(taskId: string) {
+    return (this.prisma as any).summary.findFirst({
       where: { taskId },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async findAll(taskId: string): Promise<Summary[]> {
-    return this.prisma.summary.findMany({
+  async findAll(taskId: string) {
+    return (this.prisma as any).summary.findMany({
       where: { taskId },
       orderBy: { createdAt: 'asc' },
     });

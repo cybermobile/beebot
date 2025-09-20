@@ -187,7 +187,7 @@ export class ProxyService implements BytebotAgentService {
               break;
             }
             case MessageContentType.ToolUse: {
-              const toolBlock = block as ToolUseContentBlock;
+              const toolBlock = block;
               chatMessages.push({
                 role: 'assistant',
                 tool_calls: [

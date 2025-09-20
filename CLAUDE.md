@@ -87,6 +87,8 @@ docker compose -f docker/docker-compose.yml up -d
 - `DATABASE_URL`: PostgreSQL connection string (default: `postgresql://postgres:postgres@postgres:5432/bytebotdb`)
 - `CLERK_SECRET_KEY`: Clerk authentication secret (required for multi-user)
 - `BYTEBOT_DESKTOP_BASE_URL`: Desktop service URL (default: `http://localhost:9990`)
+- `SCREENSHOT_DELAY_MS`: Delay before taking screenshots after actions (default: `750`)
+- `FETCH_TIMEOUT_MS`: Timeout for desktop API calls (default: `30000`)
 - `BYTEBOT_ANALYTICS_ENDPOINT`: Optional analytics endpoint
 - AI provider keys (choose one): `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or `GEMINI_API_KEY`
 
@@ -141,3 +143,48 @@ npm test -- --testNamePattern="should create task"
 - Authentication via Clerk is optional but recommended for multi-user setups
 - WebSocket connections require Bearer token in auth header when Clerk is enabled
 - The UI's API proxy (`src/app/api/[[...path]]/route.ts`) handles auth token forwarding automatically
+
+## Code Quality & Best Practices
+
+### Desktop Control Service (agent.computer-use.ts)
+- Uses dependency injection with NestJS `@Injectable()` decorator
+- Implements input validation for coordinates (non-negative values)
+- Configurable delays and timeouts via environment variables
+- Comprehensive error handling with proper logging
+- Timeout support for all fetch operations using AbortController
+- Pattern matching for tool execution with else-if chains for better maintainability
+
+### Type Safety
+- Avoid using `any` types - use proper TypeScript interfaces
+- Validate API responses before using them
+- Use type guards for runtime type checking
+- Handle JSON parsing with try-catch blocks
+
+### Error Handling
+- Always wrap external API calls in try-catch blocks
+- Log errors with context and stack traces
+- Return meaningful error messages to users
+- Use the `logError` utility method for consistent error logging
+
+### Testing
+- Write unit tests for all service methods
+- Test error scenarios and edge cases
+- Mock external dependencies in tests
+- Use Jest's coverage reports to ensure adequate test coverage
+
+## Recent Updates (December 2024)
+
+### DesktopComputerUseService Improvements
+- **Removed redundant logger parameter**: The `handleComputerToolUse` method now uses the class instance logger
+- **Added configurable delays**: Screenshot delays can be configured via `SCREENSHOT_DELAY_MS` environment variable
+- **Enhanced input validation**: Coordinate validation ensures non-negative values
+- **Improved error handling**: Better timeout handling with AbortController
+- **Refactored tool execution**: Changed from sequential if statements to else-if chain for better performance
+
+### Migration Notes
+If upgrading from a previous version:
+1. Update any calls to `handleComputerToolUse()` to remove the logger parameter
+2. Add optional environment variables for customization:
+   - `SCREENSHOT_DELAY_MS` (default: 750ms)
+   - `FETCH_TIMEOUT_MS` (default: 30000ms)
+3. Review and update any custom error handling to use the new patterns

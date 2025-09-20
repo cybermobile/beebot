@@ -163,7 +163,7 @@ export class OpenAIService implements BytebotAgentService {
             case MessageContentType.ToolUse:
               // For assistant messages with tool use, convert to function call
               if (message.role === Role.ASSISTANT) {
-                const toolBlock = block as ToolUseContentBlock;
+                const toolBlock = block;
                 openaiMessages.push({
                   type: 'function_call',
                   call_id: toolBlock.id,
