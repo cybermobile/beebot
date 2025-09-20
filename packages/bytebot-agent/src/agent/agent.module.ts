@@ -11,6 +11,7 @@ import { GoogleModule } from '../google/google.module';
 import { SummariesModule } from 'src/summaries/summaries.modue';
 import { AgentAnalyticsService } from './agent.analytics';
 import { ProxyModule } from 'src/proxy/proxy.module';
+import { DesktopComputerUseService } from './agent.computer-use';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { ProxyModule } from 'src/proxy/proxy.module';
     AgentScheduler,
     InputCaptureService,
     AgentAnalyticsService,
+    DesktopComputerUseService,
   ],
   exports: [AgentProcessor],
 })

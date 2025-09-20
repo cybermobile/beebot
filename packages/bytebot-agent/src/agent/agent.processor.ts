@@ -37,7 +37,7 @@ import {
   SUMMARIZATION_SYSTEM_PROMPT,
 } from './agent.constants';
 import { SummariesService } from '../summaries/summaries.service';
-import { handleComputerToolUse } from './agent.computer-use';
+import { DesktopComputerUseService } from './agent.computer-use';
 import { ProxyService } from '../proxy/proxy.service';
 
 @Injectable()
@@ -57,6 +57,7 @@ export class AgentProcessor {
     private readonly googleService: GoogleService,
     private readonly proxyService: ProxyService,
     private readonly inputCaptureService: InputCaptureService,
+    private readonly desktopComputerUseService: DesktopComputerUseService,
   ) {
     this.services = {
       anthropic: this.anthropicService,
@@ -308,7 +309,11 @@ export class AgentProcessor {
 
       for (const block of messageContentBlocks) {
         if (isComputerToolUseContentBlock(block)) {
-          const result = await handleComputerToolUse(block, this.logger);
+          const result =
+            await this.desktopComputerUseService.handleComputerToolUse(
+              block,
+              this.logger,
+            );
           generatedToolResults.push(result);
         }
 
@@ -316,16 +321,19 @@ export class AgentProcessor {
           const type = block.input.type?.toUpperCase() as TaskType;
           const priority = block.input.priority?.toUpperCase() as TaskPriority;
 
-          await this.tasksService.create({
-            description: block.input.description,
-            type,
-            createdBy: Role.ASSISTANT,
-            ...(block.input.scheduledFor && {
-              scheduledFor: new Date(block.input.scheduledFor),
-            }),
-            model: task.model,
-            priority,
-          }, task.userId!);
+          await this.tasksService.create(
+            {
+              description: block.input.description,
+              type,
+              createdBy: Role.ASSISTANT,
+              ...(block.input.scheduledFor && {
+                scheduledFor: new Date(block.input.scheduledFor),
+              }),
+              model: task.model,
+              priority,
+            },
+            task.userId!,
+          );
 
           generatedToolResults.push({
             type: MessageContentType.ToolResult,
