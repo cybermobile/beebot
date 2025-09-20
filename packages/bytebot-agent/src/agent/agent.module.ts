@@ -8,9 +8,10 @@ import { AgentScheduler } from './agent.scheduler';
 import { InputCaptureService } from './input-capture.service';
 import { OpenAIModule } from '../openai/openai.module';
 import { GoogleModule } from '../google/google.module';
-import { SummariesModule } from '../summaries/summaries.module';
+import { SummariesModule } from 'src/summaries/summaries.modue';
 import { AgentAnalyticsService } from './agent.analytics';
-import { ProxyModule } from '../proxy/proxy.module';
+import { ProxyModule } from 'src/proxy/proxy.module';
+import { DesktopComputerUseService } from './agent.computer-use';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { ProxyModule } from '../proxy/proxy.module';
     AgentScheduler,
     InputCaptureService,
     AgentAnalyticsService,
+    DesktopComputerUseService,
   ],
   exports: [AgentProcessor],
 })

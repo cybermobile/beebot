@@ -1,7 +1,14 @@
 import { TasksService } from '../tasks/tasks.service';
 import { MessagesService } from '../messages/messages.service';
 import { Injectable, Logger } from '@nestjs/common';
-import { Role, TaskPriority, TaskStatus, TaskType } from '@prisma/client';
+import {
+  Message,
+  Role,
+  Task,
+  TaskPriority,
+  TaskStatus,
+  TaskType,
+} from '@prisma/client';
 import { AnthropicService } from '../anthropic/anthropic.service';
 import {
   isComputerToolUseContentBlock,
@@ -30,7 +37,7 @@ import {
   SUMMARIZATION_SYSTEM_PROMPT,
 } from './agent.constants';
 import { SummariesService } from '../summaries/summaries.service';
-import { handleComputerToolUse } from './agent.computer-use';
+import { DesktopComputerUseService } from './agent.computer-use';
 import { ProxyService } from '../proxy/proxy.service';
 
 @Injectable()
@@ -50,6 +57,7 @@ export class AgentProcessor {
     private readonly googleService: GoogleService,
     private readonly proxyService: ProxyService,
     private readonly inputCaptureService: InputCaptureService,
+    private readonly desktopComputerUseService: DesktopComputerUseService,
   ) {
     this.services = {
       anthropic: this.anthropicService,
@@ -176,6 +184,8 @@ export class AgentProcessor {
       );
 
       const model = task.model as unknown as BytebotAgentModel;
+      let agentResponse: BytebotAgentResponse;
+
       const service = this.services[model.provider];
       if (!service) {
         this.logger.warn(
@@ -189,7 +199,7 @@ export class AgentProcessor {
         return;
       }
 
-      const agentResponse = await service.generateMessage(
+      agentResponse = await service.generateMessage(
         AGENT_SYSTEM_PROMPT,
         messages,
         model.name,
@@ -299,7 +309,11 @@ export class AgentProcessor {
 
       for (const block of messageContentBlocks) {
         if (isComputerToolUseContentBlock(block)) {
-          const result = await handleComputerToolUse(block, this.logger);
+          const result =
+            await this.desktopComputerUseService.handleComputerToolUse(
+              block,
+              this.logger,
+            );
           generatedToolResults.push(result);
         }
 
@@ -318,7 +332,7 @@ export class AgentProcessor {
               model: task.model,
               priority,
             },
-            task.userId,
+            task.userId!,
           );
 
           generatedToolResults.push({
