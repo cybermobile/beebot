@@ -25,6 +25,49 @@ import { Logger } from '@nestjs/common';
 
 const BYTEBOT_DESKTOP_BASE_URL = process.env.BYTEBOT_DESKTOP_BASE_URL as string;
 
+type DesktopCommandPayload = {
+  action: string;
+  [key: string]: unknown;
+};
+
+async function postDesktopCommand(
+  payload: DesktopCommandPayload,
+): Promise<Response> {
+  try {
+    const response = await fetch(`${BYTEBOT_DESKTOP_BASE_URL}/computer-use`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      let details = '';
+      try {
+        const text = await response.text();
+        if (text) {
+          details = ` - ${text}`;
+        }
+      } catch {
+        // Ignore errors when trying to read the response body for logging
+      }
+
+      throw new Error(
+        `Desktop action "${payload.action}" failed with status ${response.status} ${response.statusText}${details}`,
+      );
+    }
+
+    return response;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Desktop action "${payload.action}" failed: ${error.message}`, {
+        cause: error,
+      });
+    }
+
+    throw error;
+  }
+}
+
 export async function handleComputerToolUse(
   block: ComputerToolUseContentBlock,
   logger: Logger,
@@ -240,13 +283,9 @@ async function moveMouse(input: { coordinates: Coordinates }): Promise<void> {
   );
 
   try {
-    await fetch(`${BYTEBOT_DESKTOP_BASE_URL}/computer-use`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'move_mouse',
-        coordinates,
-      }),
+    await postDesktopCommand({
+      action: 'move_mouse',
+      coordinates,
     });
   } catch (error) {
     console.error('Error in move_mouse action:', error);
@@ -264,14 +303,10 @@ async function traceMouse(input: {
   );
 
   try {
-    await fetch(`${BYTEBOT_DESKTOP_BASE_URL}/computer-use`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'trace_mouse',
-        path,
-        holdKeys,
-      }),
+    await postDesktopCommand({
+      action: 'trace_mouse',
+      path,
+      holdKeys,
     });
   } catch (error) {
     console.error('Error in trace_mouse action:', error);
@@ -291,16 +326,12 @@ async function clickMouse(input: {
   );
 
   try {
-    await fetch(`${BYTEBOT_DESKTOP_BASE_URL}/computer-use`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'click_mouse',
-        coordinates,
-        button,
-        holdKeys: holdKeys && holdKeys.length > 0 ? holdKeys : undefined,
-        clickCount,
-      }),
+    await postDesktopCommand({
+      action: 'click_mouse',
+      coordinates,
+      button,
+      holdKeys: holdKeys && holdKeys.length > 0 ? holdKeys : undefined,
+      clickCount,
     });
   } catch (error) {
     console.error('Error in click_mouse action:', error);
@@ -319,15 +350,11 @@ async function pressMouse(input: {
   );
 
   try {
-    await fetch(`${BYTEBOT_DESKTOP_BASE_URL}/computer-use`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'press_mouse',
-        coordinates,
-        button,
-        press,
-      }),
+    await postDesktopCommand({
+      action: 'press_mouse',
+      coordinates,
+      button,
+      press,
     });
   } catch (error) {
     console.error('Error in press_mouse action:', error);
@@ -346,15 +373,11 @@ async function dragMouse(input: {
   );
 
   try {
-    await fetch(`${BYTEBOT_DESKTOP_BASE_URL}/computer-use`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'drag_mouse',
-        path,
-        button,
-        holdKeys: holdKeys && holdKeys.length > 0 ? holdKeys : undefined,
-      }),
+    await postDesktopCommand({
+      action: 'drag_mouse',
+      path,
+      button,
+      holdKeys: holdKeys && holdKeys.length > 0 ? holdKeys : undefined,
     });
   } catch (error) {
     console.error('Error in drag_mouse action:', error);
@@ -374,16 +397,12 @@ async function scroll(input: {
   );
 
   try {
-    await fetch(`${BYTEBOT_DESKTOP_BASE_URL}/computer-use`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'scroll',
-        coordinates,
-        direction,
-        scrollCount,
-        holdKeys: holdKeys && holdKeys.length > 0 ? holdKeys : undefined,
-      }),
+    await postDesktopCommand({
+      action: 'scroll',
+      coordinates,
+      direction,
+      scrollCount,
+      holdKeys: holdKeys && holdKeys.length > 0 ? holdKeys : undefined,
     });
   } catch (error) {
     console.error('Error in scroll action:', error);
@@ -399,14 +418,10 @@ async function typeKeys(input: {
   console.log(`Typing keys: ${keys}`);
 
   try {
-    await fetch(`${BYTEBOT_DESKTOP_BASE_URL}/computer-use`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'type_keys',
-        keys,
-        delay,
-      }),
+    await postDesktopCommand({
+      action: 'type_keys',
+      keys,
+      delay,
     });
   } catch (error) {
     console.error('Error in type_keys action:', error);
@@ -422,14 +437,10 @@ async function pressKeys(input: {
   console.log(`Pressing keys: ${keys}`);
 
   try {
-    await fetch(`${BYTEBOT_DESKTOP_BASE_URL}/computer-use`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'press_keys',
-        keys,
-        press,
-      }),
+    await postDesktopCommand({
+      action: 'press_keys',
+      keys,
+      press,
     });
   } catch (error) {
     console.error('Error in press_keys action:', error);
@@ -445,14 +456,10 @@ async function typeText(input: {
   console.log(`Typing text: ${text}`);
 
   try {
-    await fetch(`${BYTEBOT_DESKTOP_BASE_URL}/computer-use`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'type_text',
-        text,
-        delay,
-      }),
+    await postDesktopCommand({
+      action: 'type_text',
+      text,
+      delay,
     });
   } catch (error) {
     console.error('Error in type_text action:', error);
@@ -465,13 +472,9 @@ async function pasteText(input: { text: string }): Promise<void> {
   console.log(`Pasting text: ${text}`);
 
   try {
-    await fetch(`${BYTEBOT_DESKTOP_BASE_URL}/computer-use`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'paste_text',
-        text,
-      }),
+    await postDesktopCommand({
+      action: 'paste_text',
+      text,
     });
   } catch (error) {
     console.error('Error in paste_text action:', error);
@@ -484,13 +487,9 @@ async function wait(input: { duration: number }): Promise<void> {
   console.log(`Waiting for ${duration}ms`);
 
   try {
-    await fetch(`${BYTEBOT_DESKTOP_BASE_URL}/computer-use`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'wait',
-        duration,
-      }),
+    await postDesktopCommand({
+      action: 'wait',
+      duration,
     });
   } catch (error) {
     console.error('Error in wait action:', error);
@@ -502,15 +501,17 @@ async function cursorPosition(): Promise<Coordinates> {
   console.log('Getting cursor position');
 
   try {
-    const response = await fetch(`${BYTEBOT_DESKTOP_BASE_URL}/computer-use`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'cursor_position',
-      }),
-    });
+    const response = await postDesktopCommand({ action: 'cursor_position' });
 
-    const data = await response.json();
+    const data = (await response.json()) as {
+      x?: unknown;
+      y?: unknown;
+    };
+
+    if (typeof data?.x !== 'number' || typeof data?.y !== 'number') {
+      throw new Error('Invalid cursor position response received from desktop');
+    }
+
     return { x: data.x, y: data.y };
   } catch (error) {
     console.error('Error in cursor_position action:', error);
@@ -526,15 +527,7 @@ async function screenshot(): Promise<string> {
       action: 'screenshot',
     };
 
-    const response = await fetch(`${BYTEBOT_DESKTOP_BASE_URL}/computer-use`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to take screenshot: ${response.statusText}`);
-    }
+    const response = await postDesktopCommand(requestBody);
 
     const data = await response.json();
 
@@ -554,13 +547,9 @@ async function application(input: { application: string }): Promise<void> {
   console.log(`Opening application: ${application}`);
 
   try {
-    await fetch(`${BYTEBOT_DESKTOP_BASE_URL}/computer-use`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'application',
-        application,
-      }),
+    await postDesktopCommand({
+      action: 'application',
+      application,
     });
   } catch (error) {
     console.error('Error in application action:', error);
@@ -580,18 +569,10 @@ async function readFile(input: { path: string }): Promise<{
   console.log(`Reading file: ${path}`);
 
   try {
-    const response = await fetch(`${BYTEBOT_DESKTOP_BASE_URL}/computer-use`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'read_file',
-        path,
-      }),
+    const response = await postDesktopCommand({
+      action: 'read_file',
+      path,
     });
-
-    if (!response.ok) {
-      throw new Error(`Failed to read file: ${response.statusText}`);
-    }
 
     const data = await response.json();
     return data;
@@ -615,19 +596,11 @@ export async function writeFile(input: {
     // Content is always base64 encoded
     const base64Data = content;
 
-    const response = await fetch(`${BYTEBOT_DESKTOP_BASE_URL}/computer-use`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'write_file',
-        path,
-        data: base64Data,
-      }),
+    const response = await postDesktopCommand({
+      action: 'write_file',
+      path,
+      data: base64Data,
     });
-
-    if (!response.ok) {
-      throw new Error(`Failed to write file: ${response.statusText}`);
-    }
 
     const data = await response.json();
     return data;

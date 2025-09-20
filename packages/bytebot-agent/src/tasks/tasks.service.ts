@@ -364,10 +364,7 @@ export class TasksService {
     });
 
     try {
-      await fetch(
-        `${this.configService.get<string>('BYTEBOT_DESKTOP_BASE_URL')}/input-tracking/stop`,
-        { method: 'POST' },
-      );
+      await this.sendInputTrackingCommand('stop');
     } catch (error) {
       this.logger.error('Failed to stop input tracking', error);
     }
@@ -403,10 +400,7 @@ export class TasksService {
     });
 
     try {
-      await fetch(
-        `${this.configService.get<string>('BYTEBOT_DESKTOP_BASE_URL')}/input-tracking/start`,
-        { method: 'POST' },
-      );
+      await this.sendInputTrackingCommand('start');
     } catch (error) {
       this.logger.error('Failed to start input tracking', error);
     }
@@ -452,5 +446,34 @@ export class TasksService {
     this.tasksGateway.emitTaskUpdate(taskId, updatedTask);
 
     return updatedTask;
+  }
+
+  private async sendInputTrackingCommand(
+    action: 'start' | 'stop',
+  ): Promise<void> {
+    const baseUrl = this.configService.get<string>('BYTEBOT_DESKTOP_BASE_URL');
+    if (!baseUrl) {
+      throw new Error('BYTEBOT_DESKTOP_BASE_URL is not configured');
+    }
+
+    const response = await fetch(`${baseUrl}/input-tracking/${action}`, {
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      let details = '';
+      try {
+        const text = await response.text();
+        if (text) {
+          details = ` - ${text}`;
+        }
+      } catch {
+        // Ignore body parsing errors; they do not change the error semantics
+      }
+
+      throw new Error(
+        `Input tracking endpoint responded with ${response.status} ${response.statusText}${details}`,
+      );
+    }
   }
 }
