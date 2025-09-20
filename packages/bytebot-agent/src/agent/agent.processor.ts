@@ -1,14 +1,7 @@
 import { TasksService } from '../tasks/tasks.service';
 import { MessagesService } from '../messages/messages.service';
 import { Injectable, Logger } from '@nestjs/common';
-import {
-  Message,
-  Role,
-  Task,
-  TaskPriority,
-  TaskStatus,
-  TaskType,
-} from '@prisma/client';
+import { Role, TaskPriority, TaskStatus, TaskType } from '@prisma/client';
 import { AnthropicService } from '../anthropic/anthropic.service';
 import {
   isComputerToolUseContentBlock,
@@ -183,8 +176,6 @@ export class AgentProcessor {
       );
 
       const model = task.model as unknown as BytebotAgentModel;
-      let agentResponse: BytebotAgentResponse;
-
       const service = this.services[model.provider];
       if (!service) {
         this.logger.warn(
@@ -198,7 +189,7 @@ export class AgentProcessor {
         return;
       }
 
-      agentResponse = await service.generateMessage(
+      const agentResponse = await service.generateMessage(
         AGENT_SYSTEM_PROMPT,
         messages,
         model.name,
@@ -316,16 +307,19 @@ export class AgentProcessor {
           const type = block.input.type?.toUpperCase() as TaskType;
           const priority = block.input.priority?.toUpperCase() as TaskPriority;
 
-          await this.tasksService.create({
-            description: block.input.description,
-            type,
-            createdBy: Role.ASSISTANT,
-            ...(block.input.scheduledFor && {
-              scheduledFor: new Date(block.input.scheduledFor),
-            }),
-            model: task.model,
-            priority,
-          }, task.userId!);
+          await this.tasksService.create(
+            {
+              description: block.input.description,
+              type,
+              createdBy: Role.ASSISTANT,
+              ...(block.input.scheduledFor && {
+                scheduledFor: new Date(block.input.scheduledFor),
+              }),
+              model: task.model,
+              priority,
+            },
+            task.userId,
+          );
 
           generatedToolResults.push({
             type: MessageContentType.ToolResult,

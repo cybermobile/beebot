@@ -1,8 +1,7 @@
 declare module '@prisma/client' {
   export namespace Prisma {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     export type InputJsonValue = any;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     export type TaskWhereInput = any;
   }
   export const Prisma: any;

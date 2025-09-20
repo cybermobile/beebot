@@ -27,7 +27,12 @@ describe('TasksService file handling', () => {
     const configService = { get: jest.fn() } as any;
     const eventEmitter = { emit: jest.fn() } as any;
 
-    service = new TasksService(prisma, tasksGateway, configService, eventEmitter);
+    service = new TasksService(
+      prisma,
+      tasksGateway,
+      configService,
+      eventEmitter,
+    );
   });
 
   it('saves valid base64 file as buffer', async () => {

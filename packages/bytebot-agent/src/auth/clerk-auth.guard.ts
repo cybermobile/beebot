@@ -16,10 +16,9 @@ export class ClerkAuthGuard implements CanActivate {
     const req = context.switchToHttp().getRequest<RequestWithUser>();
 
     const authHeader = req.headers['authorization'];
-    const token = (Array.isArray(authHeader) ? authHeader[0] : authHeader)?.replace(
-      /^Bearer\s+/i,
-      '',
-    );
+    const token = (
+      Array.isArray(authHeader) ? authHeader[0] : authHeader
+    )?.replace(/^Bearer\s+/i, '');
 
     if (!token) {
       throw new UnauthorizedException('Missing authorization token');

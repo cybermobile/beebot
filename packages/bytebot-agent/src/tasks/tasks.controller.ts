@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
-import { Message, Task } from '@prisma/client';
+import type { Message, Task } from '@prisma/client';
 import { AddTaskMessageDto } from './dto/add-task-message.dto';
 import { TaskMessageDto } from './dto/task-message.dto';
 import { MessagesService } from '../messages/messages.service';
