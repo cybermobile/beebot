@@ -34,7 +34,11 @@ export class TasksGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const auth = client.handshake.auth as any;
       const headerAuth = client.handshake.headers['authorization'];
       let token: string | undefined = auth?.token;
-      if (!token && typeof headerAuth === 'string' && headerAuth.startsWith('Bearer ')) {
+      if (
+        !token &&
+        typeof headerAuth === 'string' &&
+        headerAuth.startsWith('Bearer ')
+      ) {
         token = headerAuth.replace(/^Bearer\s+/i, '');
       }
 
@@ -72,7 +76,9 @@ export class TasksGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const { userId } = client.data;
       if (!userId) return;
-      const task = await this.prisma.task.findFirst({ where: { id: taskId, userId } });
+      const task = await this.prisma.task.findFirst({
+        where: { id: taskId, userId },
+      });
       if (!task) {
         this.logger.warn(`Client ${client.id} unauthorized for task ${taskId}`);
         return;
