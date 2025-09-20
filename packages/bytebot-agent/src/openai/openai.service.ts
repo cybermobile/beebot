@@ -270,12 +270,23 @@ export class OpenAIService implements BytebotAgentService {
         case 'function_call':
           // Handle ResponseFunctionToolCall
           const toolCall = item;
-          contentBlocks.push({
-            type: MessageContentType.ToolUse,
-            id: toolCall.call_id,
-            name: toolCall.name,
-            input: JSON.parse(toolCall.arguments),
-          } as ToolUseContentBlock);
+          try {
+            const parsedArgs = JSON.parse(toolCall.arguments);
+            contentBlocks.push({
+              type: MessageContentType.ToolUse,
+              id: toolCall.call_id,
+              name: toolCall.name,
+              input: parsedArgs,
+            } as ToolUseContentBlock);
+          } catch (e) {
+            this.logger.warn(
+              `Failed to parse tool call arguments for ${toolCall.name}: ${toolCall.arguments}`,
+            );
+            contentBlocks.push({
+              type: MessageContentType.Text,
+              text: `Invalid tool call arguments: ${toolCall.arguments}`,
+            } as TextContentBlock);
+          }
           break;
 
         case 'file_search_call':

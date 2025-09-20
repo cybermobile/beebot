@@ -1,9 +1,14 @@
 declare module '@prisma/client' {
+  export interface Message {
+    content: any;
+    role: Role;
+  }
+
   export namespace Prisma {
     export type InputJsonValue = any;
-
     export type TaskWhereInput = any;
   }
+
   export const Prisma: any;
   export const TaskStatus: any;
   export type TaskStatus = any;
@@ -15,6 +20,7 @@ declare module '@prisma/client' {
   export type Role = any;
   export type Task = any;
   export type File = any;
+
   export class PrismaClient {
     $transaction: any;
     $connect: any;
