@@ -32,11 +32,27 @@ export class AgentAnalyticsService {
       const task = await this.tasksService.findById(payload.taskId);
       const messages = await this.messagesService.findEvery(payload.taskId);
 
-      await fetch(this.endpoint, {
+      const response = await fetch(this.endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...task, messages }),
       });
+
+      if (!response.ok) {
+        let details = '';
+        try {
+          const text = await response.text();
+          if (text) {
+            details = ` - ${text}`;
+          }
+        } catch {
+          // Ignore body parsing errors; they do not change the error semantics
+        }
+
+        throw new Error(
+          `Analytics endpoint responded with ${response.status} ${response.statusText}${details}`,
+        );
+      }
     } catch (error: any) {
       this.logger.error(
         `Failed to send analytics for task ${payload.taskId}: ${error.message}`,

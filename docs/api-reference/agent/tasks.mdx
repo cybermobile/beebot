@@ -12,11 +12,25 @@ The Tasks API allows you to manage tasks in the Bytebot agent system. It's avail
 ```typescript
 {
   id: string;
-  description: string; 
+  description: string;
   status: 'PENDING' | 'IN_PROGRESS' | 'NEEDS_HELP' | 'NEEDS_REVIEW' | 'COMPLETED' | 'CANCELLED' | 'FAILED';
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-  createdAt: string; 
-  updatedAt: string; 
+  createdAt: string;
+  updatedAt: string;
+}
+```
+
+## Message Model
+
+```typescript
+{
+  id: string;
+  content: MessageContentBlock[];
+  role: 'USER' | 'ASSISTANT';
+  taskId: string;
+  createdAt: string;
+  updatedAt: string;
+  summaryId?: string | null;
 }
 ```
 
@@ -147,6 +161,38 @@ Retrieve a specific task by its ID.
     }
     // ...more messages
   ]
+  }
+  ```
+
+### Add Task Message
+
+Add a user message to an existing task.
+
+<Card title="POST /tasks/:id/messages" icon="chat-bubble-left">
+  Add a message to a task
+</Card>
+
+#### Request Body
+
+```json
+{
+  "message": "Additional instructions for the task"
+}
+```
+
+#### Response
+
+```json
+{
+  "id": "msg-456",
+  "content": [
+    { "type": "text", "text": "Additional instructions for the task" }
+  ],
+  "role": "USER",
+  "taskId": "task-123",
+  "createdAt": "2025-04-14T12:05:00Z",
+  "updatedAt": "2025-04-14T12:05:00Z",
+  "summaryId": null
 }
 ```
 

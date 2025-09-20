@@ -6,9 +6,13 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { verifyToken } from '@clerk/backend';
 import { PrismaService } from '../prisma/prisma.service';
+
+interface SocketWithUserData extends Socket {
+  data: { userId?: string };
+}
 
 @Injectable()
 @WebSocketGateway({
@@ -21,19 +25,25 @@ export class TasksGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
+  private readonly logger = new Logger(TasksGateway.name);
+
   constructor(private prisma: PrismaService) {}
 
-  async handleConnection(client: Socket) {
+  async handleConnection(client: SocketWithUserData) {
     try {
       const auth = client.handshake.auth as any;
       const headerAuth = client.handshake.headers['authorization'];
       let token: string | undefined = auth?.token;
-      if (!token && typeof headerAuth === 'string' && headerAuth.startsWith('Bearer ')) {
+      if (
+        !token &&
+        typeof headerAuth === 'string' &&
+        headerAuth.startsWith('Bearer ')
+      ) {
         token = headerAuth.replace(/^Bearer\s+/i, '');
       }
 
       if (!token) {
-        console.log('WS missing token, disconnecting');
+        this.logger.warn('WS missing token, disconnecting');
         return client.disconnect();
       }
 
@@ -49,39 +59,44 @@ export class TasksGateway implements OnGatewayConnection, OnGatewayDisconnect {
         create: { clerkId, email },
       });
 
-      (client.data as any).userId = user.id;
-      console.log(`Client connected: ${client.id} (user ${user.id})`);
+      client.data.userId = user.id;
+      this.logger.log(`Client connected: ${client.id} (user ${user.id})`);
     } catch (e) {
-      console.log('WS token verification failed, disconnecting');
+      this.logger.error('WS token verification failed, disconnecting');
       client.disconnect();
     }
   }
 
-  handleDisconnect(client: Socket) {
-    console.log(`Client disconnected: ${client.id}`);
+  handleDisconnect(client: SocketWithUserData) {
+    this.logger.log(`Client disconnected: ${client.id}`);
   }
 
   @SubscribeMessage('join_task')
-  async handleJoinTask(client: Socket, taskId: string) {
+  async handleJoinTask(client: SocketWithUserData, taskId: string) {
     try {
-      const userId = (client.data as any).userId as string | undefined;
+      const { userId } = client.data;
       if (!userId) return;
-      const task = await this.prisma.task.findFirst({ where: { id: taskId, userId } });
+      const task = await this.prisma.task.findFirst({
+        where: { id: taskId, userId },
+      });
       if (!task) {
-        console.log(`Client ${client.id} unauthorized for task ${taskId}`);
+        this.logger.warn(`Client ${client.id} unauthorized for task ${taskId}`);
         return;
       }
       client.join(`task_${taskId}`);
-      console.log(`Client ${client.id} joined task ${taskId}`);
+      this.logger.log(`Client ${client.id} joined task ${taskId}`);
     } catch (e) {
-      console.log('Error joining task room', e);
+      this.logger.error(
+        'Error joining task room',
+        e instanceof Error ? e.stack : undefined,
+      );
     }
   }
 
   @SubscribeMessage('leave_task')
-  handleLeaveTask(client: Socket, taskId: string) {
+  handleLeaveTask(client: SocketWithUserData, taskId: string) {
     client.leave(`task_${taskId}`);
-    console.log(`Client ${client.id} left task ${taskId}`);
+    this.logger.log(`Client ${client.id} left task ${taskId}`);
   }
 
   emitTaskUpdate(taskId: string, task: any) {

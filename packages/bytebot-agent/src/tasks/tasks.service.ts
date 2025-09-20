@@ -19,6 +19,8 @@ import {
   File,
 } from '@prisma/client';
 import { AddTaskMessageDto } from './dto/add-task-message.dto';
+import { TaskMessageDto } from './dto/task-message.dto';
+import { MessageContentBlock } from '@bytebot/shared';
 import { TasksGateway } from './tasks.gateway';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -76,14 +78,33 @@ export class TasksService {
             ? file.base64.split('base64,')[1]
             : file.base64;
 
+          // Validate base64 format
+          if (
+            base64Data.length % 4 !== 0 ||
+            !/^[A-Za-z0-9+/=]+$/.test(base64Data)
+          ) {
+            throw new BadRequestException(
+              `Invalid base64 data for file ${file.name}`,
+            );
+          }
+
+          const buffer = Buffer.from(base64Data, 'base64');
+
+          const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+          if (buffer.length > MAX_FILE_SIZE) {
+            throw new BadRequestException(
+              `File ${file.name} exceeds the maximum allowed size of 10MB`,
+            );
+          }
+
           filesDescription += `\nFile ${file.name} written to desktop.`;
 
           return prisma.file.create({
             data: {
               name: file.name,
               type: file.type || 'application/octet-stream',
-              size: file.size,
-              data: base64Data,
+              size: buffer.length,
+              data: buffer as any,
               taskId: task.id,
             },
           });
@@ -265,7 +286,7 @@ export class TasksService {
           this.tasksGateway.emitTaskUpdate(id, updatedTask);
         }
       } catch (e) {
-        this.logger.error('Failed to take over task in update', e as any);
+        this.logger.error('Failed to take over task in update', e);
       }
     } else if (updateTaskDto.status === TaskStatus.FAILED) {
       this.eventEmitter.emit('task.failed', { taskId: id });
@@ -300,7 +321,7 @@ export class TasksService {
     taskId: string,
     addTaskMessageDto: AddTaskMessageDto,
     userId: string,
-  ) {
+  ): Promise<TaskMessageDto> {
     const task = await this.findByIdForUser(taskId, userId);
     if (!task) {
       this.logger.warn(`Task with ID: ${taskId} not found for guiding`);
@@ -316,7 +337,10 @@ export class TasksService {
     });
 
     this.tasksGateway.emitNewMessage(taskId, message);
-    return task;
+    return {
+      ...message,
+      content: message.content as MessageContentBlock[],
+    };
   }
 
   async resume(taskId: string, userId: string): Promise<Task> {
@@ -340,10 +364,7 @@ export class TasksService {
     });
 
     try {
-      await fetch(
-        `${this.configService.get<string>('BYTEBOT_DESKTOP_BASE_URL')}/input-tracking/stop`,
-        { method: 'POST' },
-      );
+      await this.sendInputTrackingCommand('stop');
     } catch (error) {
       this.logger.error('Failed to stop input tracking', error);
     }
@@ -379,10 +400,7 @@ export class TasksService {
     });
 
     try {
-      await fetch(
-        `${this.configService.get<string>('BYTEBOT_DESKTOP_BASE_URL')}/input-tracking/start`,
-        { method: 'POST' },
-      );
+      await this.sendInputTrackingCommand('start');
     } catch (error) {
       this.logger.error('Failed to start input tracking', error);
     }
@@ -428,5 +446,34 @@ export class TasksService {
     this.tasksGateway.emitTaskUpdate(taskId, updatedTask);
 
     return updatedTask;
+  }
+
+  private async sendInputTrackingCommand(
+    action: 'start' | 'stop',
+  ): Promise<void> {
+    const baseUrl = this.configService.get<string>('BYTEBOT_DESKTOP_BASE_URL');
+    if (!baseUrl) {
+      throw new Error('BYTEBOT_DESKTOP_BASE_URL is not configured');
+    }
+
+    const response = await fetch(`${baseUrl}/input-tracking/${action}`, {
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      let details = '';
+      try {
+        const text = await response.text();
+        if (text) {
+          details = ` - ${text}`;
+        }
+      } catch {
+        // Ignore body parsing errors; they do not change the error semantics
+      }
+
+      throw new Error(
+        `Input tracking endpoint responded with ${response.status} ${response.statusText}${details}`,
+      );
+    }
   }
 }
